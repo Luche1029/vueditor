@@ -2,7 +2,14 @@
   <div class="editor-layout">
     <ComponentPalette />
     
-    <CanvasArea />
+    <div class="canvas-main">
+        <div class="editor-toolbar">
+            <button @click="handleExport" class="btn-export">
+                Esporta HTML 🚀
+            </button>
+        </div>
+        <CanvasArea />
+    </div>
 
  <PropertiesPanel />
   </div>
@@ -12,28 +19,63 @@
 import ComponentPalette from '../components/ComponentPalette.vue';
 import CanvasArea from '../components/CanvasArea.vue';
 import PropertiesPanel from '../components/PropertiesPanel.vue'; 
-import { useAuthStore } from '../stores/auth';
-import { usePageStore } from '../stores/page'; // Importa lo store della pagina
-import { useRouter } from 'vue-router';
+import { usePageStore } from '../stores/page'; 
 
-const authStore = useAuthStore();
 const pageStore = usePageStore();
-const router = useRouter();
+
+function handleExport() {
+    const htmlContent = pageStore.exportHtml();
+    
+    // Logica per scaricare il file (solo per dimostrazione)
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pagina-re7.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    alert("File HTML scaricato! Controlla i tuoi download.");
+}
 </script>
 
 <style scoped>
+/* Aggiusta il layout per accomodare la toolbar */
 .editor-layout {
   display: flex;
   height: 100vh;
   overflow: hidden;
 }
 
-.properties-panel {
-  width: 300px;
-  background-color: #f8f8f8;
-  border-left: 1px solid #eee;
-  padding: 1rem;
-  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
-  overflow-y: auto;
+.canvas-main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
 }
+
+.editor-toolbar {
+    background-color: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 10px 20px;
+    text-align: right;
+}
+
+.btn-export {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.btn-export:hover {
+    background-color: #0056b3;
+}
+
+/* ... (mantieni gli altri stili) */
 </style>

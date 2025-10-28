@@ -30,7 +30,7 @@ const router = createRouter({
 });
 
 // Guard per la protezione delle rotte
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _, next) => {
   const authStore = useAuthStore();
   
   // 1. Se la rotta è protetta E l'utente non è autenticato

@@ -1,85 +1,103 @@
 // --- Tipi Base ---
 
-/**
- * Le proprietà comuni a tutti i blocchi.
- * Vengono utilizzate per l'identificazione, il rendering e la gestione.
- */
+// (Mantieni IBlockBase e IBlock invariati)
 export interface IBlockBase {
-  id: string; // ID unico per l'identificazione e il riordinamento (richiesto da vuedraggable)
-  type: string; // Tipo di componente (es. 'heading', 'section', 'tile')
-  classNames?: string; // Classe CSS avanzata per la designer (opzionale)
+  id: string;
+  type: string;
+  classNames?: string; // Utilità avanzata per classi custom
 }
+
+export interface IBlock extends IBlockBase {
+  props: Record<string, any>;
+  children?: IBlock[];
+}
+
+// --- Tipi di Opzioni Basate sul CSS ---
+
+/** * Le tue classi di spaziatura verticali sono: 
+ * .section (default) | .section--sm | .section--lg
+ */
+export type PaddingSize = 'default' | 'sm' | 'lg';
 
 /**
- * L'oggetto principale che definisce un blocco all'interno della pageStructure.
+ * Le tue classi di colonne sono:
+ * .grid--2 | .grid--3 (e 1 su mobile)
  */
-export interface IBlock extends IBlockBase {
-  props: Record<string, any>; // Tutte le proprietà specifiche del blocco (es. content, color)
-  children?: IBlock[]; // Array per i blocchi contenitori (es. Section, Grid)
+export type GridColumns = 2 | 3;
+
+/**
+ * Le tue utility di margin sono:
+ * .mt-8, .mt-16, .mt-24, .mt-32
+ */
+export type MarginTopSize = 'none' | 'm-0' | 'mt-8' | 'mt-16' | 'mt-24' | 'mt-32';
+
+// --- Interfacce specifiche per le Props (Aggiornate) ---
+
+// 1. Blocco Sezione (Section)
+export interface ISectionProps {
+  // Nota: usiamo paddingTop/Bottom in ISectionProps, ma solo una classe complessiva nel CSS (.section--sm/.section--lg)
+  // Per semplicità, useremo una singola proprietà 'size' per controllare la classe .section--X
+  size: PaddingSize; 
+  backgroundColor?: string; // Potrebbe essere usato per cambiare lo sfondo al di fuori di --bg, es. var(--panel)
 }
 
-// --- Interfacce specifiche per le Props (per i Blocchi di Contenuto) ---
+// 2. Blocco Griglia (Grid)
+export interface IGridProps {
+  columns: GridColumns; 
+  // Nel tuo CSS, il gap è fisso (16px), quindi non serve renderlo modificabile a meno di nuove classi.
+}
 
-// 1. Blocco Intestazione (Heading)
+// 3. Blocco Intestazione (Heading)
 export interface IHeadingProps {
-  content: string; // Il testo del titolo (editing inline)
-  level: 'h1' | 'h2' | 'h3' | 'h4'; // Il livello del tag HTML
-  alignment: 'left' | 'center' | 'right';
-  color?: string; // Colore del testo (codice esadecimale)
+  content: string; 
+  level: 'h1' | 'h2' | 'h3'; 
+  // Non ci sono classi CSS esplicite per l'allineamento o il colore qui, ma potresti voler includere 'center' e 'm-0'.
+  alignment: 'left' | 'center'; 
+  marginUtility?: MarginTopSize; // Utilità di margine come .m-0 o .mt-24
 }
 
-// 2. Blocco Pulsante (Button)
+// 4. Blocco Paragrafo (Paragraph)
+export interface IParagraphProps {
+  content: string; 
+  // Useremo 'copy' come un blocco contenitore più che un singolo paragrafo.
+}
+
+// 5. Blocco Pulsante (Button)
 export interface IButtonProps {
   text: string;
-  url: string; // Destinazione del link
-  style: 'primary' | 'ghost'; // Stile del pulsante (corrisponde alle classi CSS)
-  size: 'small' | 'medium' | 'large';
-  target?: '_self' | '_blank'; // Apertura link
+  url: string; 
+  // Corrisponde a .btn--primary e .btn--ghost
+  style: 'primary' | 'ghost'; 
+  target?: '_self' | '_blank'; 
 }
 
-// 3. Blocco Scheda (Tile)
+// 6. Blocco Scheda (Tile)
 export interface ITileProps {
-  kicker: string; // Testo sopra il titolo
+  kicker: string; 
   title: string;
   text: string;
-  ctaText: string; // Testo del link 'Scopri'
+  ctaText: string; 
   ctaUrl: string;
 }
 
-// 4. Blocco Immagine (Image)
-export interface IImageProps {
-  src: string; // URL dell'immagine
-  alt: string; // Testo alt obbligatorio per accessibilità
-  width?: number; // Larghezza in percentuale o pixel
-  ratio: '16x9' | '4x3' | '1x1'; // Rapporto d'aspetto per il responsive
+// 7. Blocco Testata Sezione (Section Head) - NEW
+export interface ISectionHeadProps {
+  title: string; // Titolo h2 (classe section-head__title)
+  subtitle: string; // Sottotitolo (classe section-head__sub)
+  marginUtility?: MarginTopSize; // Utilità di margine come .mt-24
 }
 
-// --- Interfacce specifiche per i Blocchi Strutturali ---
-
-// 5. Blocco Sezione (Section)
-export interface ISectionProps {
-  // Nota: una sezione non ha content, ma ha children
-  paddingTop: 'none' | 'small' | 'medium' | 'large';
-  paddingBottom: 'none' | 'small' | 'medium' | 'large';
-  backgroundColor?: string;
-}
-
-// 6. Blocco Griglia (Grid)
-export interface IGridProps {
-  columns: 2 | 3 | 4; // Numero di colonne
-  gap: 'small' | 'medium' | 'large'; // Spaziatura tra le colonne
+// 8. Blocco Contenuto Testuale (Copy Block) - NEW
+// Questo blocca rappresenta il blocco di testo esteso con la classe .copy
+export interface ICopyBlockProps {
+    content: string; // Potrebbe essere HTML (paragrafi, strong)
+    marginUtility?: MarginTopSize; 
 }
 
 
-// --- Struttura Dati Globale ---
+// --- Struttura Dati Globale (Invariata) ---
 
-/**
- * Struttura dei dati principali conservata nel Pinia Store.
- * È l'Albero JSON che l'editor manipola e che viene esportato come HTML.
- */
 export interface IPageStructureState {
-  // L'array principale che contiene tutti i blocchi di primo livello (Sezioni)
   pageBlocks: IBlock[]; 
-  // Riferimento al blocco attualmente selezionato per il Pannello Proprietà
   selectedBlockId: string | null; 
 }

@@ -1,11 +1,15 @@
 import { defineStore } from 'pinia';
-import { exportPageHtml } from '../utils/html-generator'; // NUOVA IMPORTAZIONE
+import { exportPageHtml } from '../utils/html-generator'; 
 import type { 
-  IPageStructureState, 
-  IBlock, 
-  IBlockBase,
-  ISectionProps,
-  IHeadingProps,
+    IBlock, 
+    ISectionProps, 
+    IHeadingProps, 
+    IGridProps,
+    ISectionHeadProps,
+    ITileProps,
+    IButtonProps,
+    ICopyBlockProps,
+    IPageStructureState
 } from '../types/page';
 
 // Funzione helper per generare un ID unico
@@ -16,32 +20,106 @@ function generateUniqueId(): string {
 
 // Definizioni di base (factory) per i nuovi blocchi
 const defaultBlockFactories = {
-    // Esempio: Blocco Sezione (Strutturale)
+    // 1. Blocco Sezione (Strutturale)
     'section': (): IBlock => ({
         id: generateUniqueId(),
         type: 'section',
         props: {
-            paddingTop: 'medium',
-            paddingBottom: 'medium',
-            backgroundColor: '#ffffff'
+            size: 'default', // Corrisponde alla classe .section
+            backgroundColor: 'var(--bg)' // Per coerenza con il tuo CSS (anche se il generatore usa 'style')
         } as ISectionProps,
-        children: [] // Le sezioni sono contenitori
+        children: [{ // Inizializza con un container all'interno per la struttura
+            id: generateUniqueId(),
+            type: 'container',
+            props: {}, // I container non hanno props modificabili
+            children: []
+        }]
     }),
     
-    // Esempio: Blocco Intestazione (Contenuto)
+    // 2. Blocco Griglia (Strutturale)
+    'grid': (): IBlock => ({
+        id: generateUniqueId(),
+        type: 'grid',
+        props: {
+            columns: 3, // Corrisponde alla classe .grid--3
+        } as IGridProps,
+        children: [] 
+    }),
+
+    // 3. Blocco Testata Sezione (Contenuto Strutturale)
+    'sectionhead': (): IBlock => ({
+        id: generateUniqueId(),
+        type: 'sectionhead',
+        props: {
+            title: 'Titolo di Sezione',
+            subtitle: 'Breve descrizione o sottotitolo della sezione.',
+            marginUtility: 'none'
+        } as ISectionHeadProps,
+        children: []
+    }),
+    
+    // 4. Blocco Intestazione (Contenuto)
     'heading': (): IBlock => ({
         id: generateUniqueId(),
         type: 'heading',
         props: {
             content: 'Nuovo Titolo',
-            level: 'h2',
+            level: 'h2', // h2 è una scelta comune per i contenuti
             alignment: 'left',
-            color: '#333333'
+            marginUtility: 'm-0' // Corrisponde alla classe .m-0
         } as IHeadingProps,
-        children: [] // I titoli non contengono altri blocchi
+        children: []
     }),
     
-    // TODO: Aggiungere factory per 'grid', 'image', 'button', ecc.
+    // 5. Blocco Contenuto Testuale (.copy)
+    'copyblock': (): IBlock => ({
+        id: generateUniqueId(),
+        type: 'copyblock',
+        props: {
+            content: '<p>Inserisci qui il testo lungo, usa <strong>strong</strong> per evidenziare.</p>',
+            marginUtility: 'mt-8'
+        } as ICopyBlockProps,
+        children: []
+    }),
+
+    // 6. Blocco Scheda (Contenuto)
+    'tile': (): IBlock => ({
+        id: generateUniqueId(),
+        type: 'tile',
+        props: {
+            kicker: 'Categoria',
+            title: 'Titolo Scheda',
+            text: 'Descrizione breve del servizio o del prodotto.',
+            ctaText: 'Vai',
+            ctaUrl: '#tile-link'
+        } as ITileProps,
+        children: []
+    }),
+
+    // 7. Blocco Pulsante (Contenuto)
+    'button': (): IBlock => ({
+        id: generateUniqueId(),
+        type: 'button',
+        props: {
+            text: 'Parliamone',
+            url: '/contacts.html',
+            style: 'primary', // Corrisponde alla classe .btn--primary
+            target: '_self'
+        } as IButtonProps,
+        children: []
+    }),
+
+    // 8. Blocco Spaziatore (Utilità)
+    'divider': (): IBlock => ({
+        id: generateUniqueId(),
+        type: 'divider',
+        props: {
+            marginUtility: 'mt-24' // Corrisponde a <div class="mt-24"></div>
+        },
+        children: []
+    })
+    
+    // TODO: Aggiungere 'image' e 'carousel'
 };
 
 export const usePageStore = defineStore('page', {
@@ -172,12 +250,12 @@ export const usePageStore = defineStore('page', {
      * Genera la stringa HTML completa della pagina.
      * @returns La stringa HTML generata.
      */
-        exportHtml(): string {
-            const html = exportPageHtml(this.pageBlocks);
-            console.log("HTML Pagina Generato:", html);
-            
-            // Questa stringa può essere scaricata o inviata a un backend
-            return html; 
-        }
+    exportHtml(): string {
+        const html = exportPageHtml(this.pageBlocks);
+        console.log("HTML Pagina Generato:", html);
+        
+        // Questa stringa può essere scaricata o inviata a un backend
+        return html; 
+    }
   }
 });

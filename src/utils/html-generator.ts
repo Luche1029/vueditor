@@ -1,4 +1,4 @@
-import type { IBlock } from '../types/page';
+import type { IBlock, GridColumns } from '../types/page';
 
 /**
  * Mappa che associa il tipo di blocco a una funzione di rendering specifica.
@@ -9,50 +9,48 @@ const renderMap: Record<string, (block: IBlock, childrenHtml: string) => string>
     // --- Blocchi Strutturali ---
 
     /**
-     * Rende il blocco Section.
-     * Le sezioni contengono SEMPRE i Contenitori e sono il livello più alto.
+     * Rende il blocco Section. 
+     * Utilizza la prop 'size' per applicare le classi di padding (.section, .section--sm, .section--lg).
      */
     section: (block, childrenHtml) => {
-        const { paddingTop, paddingBottom, backgroundColor } = block.props;
+        const { size, backgroundColor } = block.props;
         
-        // Determina le classi CSS in base alle props
-        const paddingClass = (paddingTop !== 'none' || paddingBottom !== 'none') ? 'section' : '';
-        const paddingTopClass = paddingTop !== 'none' ? ` pt-${paddingTop}` : '';
-        const paddingBottomClass = paddingBottom !== 'none' ? ` pb-${paddingBottom}` : '';
+        let classList = 'section'; // Classe base per il padding
         
-        const style = backgroundColor !== '#ffffff' ? ` style="background-color: ${backgroundColor};"` : '';
+        // Determina la classe di dimensione del padding
+        if (size === 'sm') {
+            classList = 'section section--sm';
+        } else if (size === 'lg') {
+            classList = 'section section--lg';
+        }
         
+        // Gestione del background (se diverso dal default --bg)
+        const style = backgroundColor ? ` style="background-color: ${backgroundColor};"` : '';
+        
+        // Aggiunge un contenitore interno per ospitare i figli
+        const wrappedChildren = `
+    <div class="container">
+        ${childrenHtml}
+    </div>`;
+
         return `
-<section class="${paddingClass}${paddingTopClass}${paddingBottomClass}"${style}>
-    ${childrenHtml}
+<section class="${classList}"${style}>${wrappedChildren}
 </section>
         `.trim();
     },
 
     /**
-     * Rende il blocco Container.
-     * Un Contenitore è usato per limitare la larghezza (e centraggio) all'interno di una Sezione.
-     */
-    container: (block, childrenHtml) => {
-        // Ipotizzando che il Contenitore abbia sempre la classe 'container' nel tuo CSS
-        return `
-<div class="container">
-    ${childrenHtml}
-</div>
-        `.trim();
-    },
-    
-    /**
      * Rende il blocco Griglia.
-     * Applica la classe 'grid' e il numero di colonne.
+     * Utilizza la prop 'columns' per applicare le classi (.grid--2, .grid--3).
      */
     grid: (block, childrenHtml) => {
-        const { columns, gap } = block.props; // es. columns=3, gap=medium
-        const gridClass = `grid grid--${columns}`;
-        const gapClass = ` grid-gap--${gap}`; // Classe CSS ipotetica per il gap
+        const { columns } = block.props as { columns: GridColumns };
+        
+        // Le tue classi sono .grid, .grid--2, .grid--3
+        const classList = `grid grid--${columns}`;
         
         return `
-<div class="${gridClass}${gapClass}">
+<div class="${classList}">
     ${childrenHtml}
 </div>
         `.trim();
@@ -61,40 +59,96 @@ const renderMap: Record<string, (block: IBlock, childrenHtml: string) => string>
     // --- Blocchi di Contenuto ---
     
     /**
-     * Rende il blocco Intestazione (Heading).
+     * Rende la Testata di Sezione (Section Head).
      */
-    heading: (block, childrenHtml) => {
-        const { content, level, alignment, color } = block.props;
-        const Tag = level || 'h2'; // es. 'h1', 'h2'
-        const style = `text-align: ${alignment}; color: ${color};`;
-        
-        return `<${Tag} style="${style}">${content}</${Tag}>`;
+    sectionhead: (block, _) => {
+        const { title, subtitle, marginUtility } = block.props;
+        const marginClass = marginUtility && marginUtility !== 'none' ? ` ${marginUtility}` : '';
+
+        return `
+<div class="section-head${marginClass}">
+    <div>
+        <h2 class="section-head__title m-0">${title}</h2>
+        <p class="section-head__sub">${subtitle}</p>
+    </div>
+</div>
+        `.trim();
     },
     
     /**
-     * Rende il blocco Paragrafo.
+     * Rende il blocco Intestazione (Heading).
+     * Nota: Utilizziamo solo le utility di margine, non i colori, come da specifica "solo classi".
      */
-    paragraph: (block, childrenHtml) => {
-        const { content, alignment } = block.props;
-        const style = `text-align: ${alignment};`;
+    heading: (block, _) => {
+        const { content, level, alignment, marginUtility } = block.props;
+        const Tag = level || 'h2'; 
         
-        // Nota: Qui dovremmo gestire l'HTML interno se l'editor fosse un WYSIWYG
-        return `<p style="${style}">${content}</p>`;
+        // Classe per l'allineamento (solo se non 'left', altrimenti vuota)
+        const alignClass = alignment === 'center' ? ' center' : ''; 
+        // Classe per il margine
+        const marginClass = marginUtility && marginUtility !== 'none' ? ` ${marginUtility}` : '';
+
+        return `<${Tag} class="m-0${alignClass}${marginClass}">${content}</${Tag}>`;
+    },
+    
+    /**
+     * Rende il blocco Testo Esteso (.copy).
+     */
+    copyblock: (block, _) => {
+        const { content, marginUtility } = block.props;
+        const marginClass = marginUtility && marginUtility !== 'none' ? ` ${marginUtility}` : '';
+        
+        // Nota: Assumiamo che 'content' contenga HTML pulito (paragrafi, strong)
+        return `
+<div class="copy${marginClass}">
+    ${content}
+</div>
+        `.trim();
     },
     
     /**
      * Rende il blocco Pulsante (Button).
      */
-    button: (block, childrenHtml) => {
-        const { text, url, style, size, target } = block.props;
-        // La classe btn--primary/ghost è già nel tuo codice HTML d'esempio
-        const classNames = `btn btn--${style} btn--${size}`; 
+    button: (block, _) => {
+        const { text, url, style, target } = block.props;
+        
+        // Classi .btn--primary o .btn--ghost
+        const classNames = `btn btn--${style}`; 
         const targetAttr = target === '_blank' ? ' target="_blank" rel="noopener"' : '';
         
         return `<a class="${classNames}" href="${url}"${targetAttr}>${text}</a>`;
     },
+    
+    /**
+     * Rende il blocco Scheda (Tile).
+     */
+    tile: (block, _) => {
+        const { kicker, title, text, ctaText, ctaUrl } = block.props;
+        
+        // Le schede non contengono figli, sono elementi finali
+        return `
+<article class="tile">
+    <div class="tile__kicker">${kicker}</div>
+    <h3 class="tile__title">${title}</h3>
+    <p class="tile__text">${text}</p>
+    <a class="tile__cta" href="${ctaUrl}">${ctaText}</a>
+</article>
+        `.trim();
+    },
 
-    // TODO: Aggiungere logica per 'image', 'tile', ecc.
+    /**
+     * Rende il blocco Spaziatore (Divider).
+     */
+    divider: (block, _) => {
+        const { marginUtility } = block.props;
+        
+        // Questo blocco usa solo la classe di margine, es. <div class="mt-24"></div>
+        const marginClass = marginUtility && marginUtility !== 'none' ? marginUtility : 'mt-8'; // Assumiamo un minimo
+        
+        return `<div class="${marginClass}"></div>`;
+    },
+
+    // TODO: Aggiungere logica per 'image', 'carousel', ecc.
 };
 
 /**
