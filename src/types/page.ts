@@ -1,18 +1,7 @@
-// --- Tipi Base ---
+const generateId = () => Math.random().toString(36).substring(2, 9);
 
-// (Mantieni IBlockBase e IBlock invariati)
-export interface IBlockBase {
-  id: string;
-  type: string;
-  classNames?: string; // Utilità avanzata per classi custom
-}
 
-export interface IBlock extends IBlockBase {
-  props: Record<string, any>;
-  children?: IBlock[];
-}
-
-// --- Tipi di Opzioni Basate sul CSS ---
+// --- Tipi di Opzioni Basate sul CSS (Mantengono la coerenza) ---
 
 /** * Le tue classi di spaziatura verticali sono: 
  * .section (default) | .section--sm | .section--lg
@@ -31,73 +20,159 @@ export type GridColumns = 2 | 3;
  */
 export type MarginTopSize = 'none' | 'm-0' | 'mt-8' | 'mt-16' | 'mt-24' | 'mt-32';
 
-// --- Interfacce specifiche per le Props (Aggiornate) ---
 
-// 1. Blocco Sezione (Section)
-export interface ISectionProps {
-  // Nota: usiamo paddingTop/Bottom in ISectionProps, ma solo una classe complessiva nel CSS (.section--sm/.section--lg)
-  // Per semplicità, useremo una singola proprietà 'size' per controllare la classe .section--X
-  size: PaddingSize; 
-  backgroundColor?: string; // Potrebbe essere usato per cambiare lo sfondo al di fuori di --bg, es. var(--panel)
-}
+// --- Tipi Strutturali Principali ---
 
-// 2. Blocco Griglia (Grid)
-export interface IGridProps {
-  columns: GridColumns; 
-  // Nel tuo CSS, il gap è fisso (16px), quindi non serve renderlo modificabile a meno di nuove classi.
-}
+/**
+ * Interfaccia che definisce la struttura fondamentale di ogni blocco nel page editor.
+ */
+export interface IBlock {
+    id: string;
+    type: string;
+    
+    // Contiene i dati funzionali/contenutistici del blocco (es. testo, livello, titolo, ecc.)
+    data?: Record<string, any>;
 
-// 3. Blocco Intestazione (Heading)
-export interface IHeadingProps {
-  content: string; 
-  level: 'h1' | 'h2' | 'h3'; 
-  // Non ci sono classi CSS esplicite per l'allineamento o il colore qui, ma potresti voler includere 'center' e 'm-0'.
-  alignment: 'left' | 'center'; 
-  marginUtility?: MarginTopSize; // Utilità di margine come .m-0 o .mt-24
-}
+    // Contiene gli attributi HTML da renderizzare (es. class, id, style)
+    props?: Record<string, any>; 
 
-// 4. Blocco Paragrafo (Paragraph)
-export interface IParagraphProps {
-  content: string; 
-  // Useremo 'copy' come un blocco contenitore più che un singolo paragrafo.
-}
-
-// 5. Blocco Pulsante (Button)
-export interface IButtonProps {
-  text: string;
-  url: string; 
-  // Corrisponde a .btn--primary e .btn--ghost
-  style: 'primary' | 'ghost'; 
-  target?: '_self' | '_blank'; 
-}
-
-// 6. Blocco Scheda (Tile)
-export interface ITileProps {
-  kicker: string; 
-  title: string;
-  text: string;
-  ctaText: string; 
-  ctaUrl: string;
-}
-
-// 7. Blocco Testata Sezione (Section Head) - NEW
-export interface ISectionHeadProps {
-  title: string; // Titolo h2 (classe section-head__title)
-  subtitle: string; // Sottotitolo (classe section-head__sub)
-  marginUtility?: MarginTopSize; // Utilità di margine come .mt-24
-}
-
-// 8. Blocco Contenuto Testuale (Copy Block) - NEW
-// Questo blocca rappresenta il blocco di testo esteso con la classe .copy
-export interface ICopyBlockProps {
-    content: string; // Potrebbe essere HTML (paragrafi, strong)
-    marginUtility?: MarginTopSize; 
+    // Contiene i blocchi figli, utilizzato solo dai blocchi contenitori (es. 'section', 'grid').
+    children?: IBlock[] | null; 
 }
 
 
-// --- Struttura Dati Globale (Invariata) ---
+// --- Tipi per l'UI (La nuova Palette Sidebar) ---
+
+/**
+ * Interfaccia per definire i componenti disponibili nella palette laterale.
+ */
+export interface IComponentDefinition {
+    id: string;
+    name: string;
+    type: string; // Corrisponde al campo 'type' in IBlock (es. 'heading', 'section')
+    icon: string; // Icona da visualizzare nella sidebar
+    description: string;
+    isContainer: boolean; // True se il blocco può contenere altri blocchi
+}
+
+// --- Struttura Dati Globale ---
 
 export interface IPageStructureState {
-  pageBlocks: IBlock[]; 
-  selectedBlockId: string | null; 
+    pageBlocks: IBlock[]; 
+    selectedBlockId: string | null; 
+    isPreviewMode: boolean; 
 }
+
+// --- Block Factories (FUNZIONI PER LA CREAZIONE DEI NUOVI BLOCCHI) ---
+
+/**
+ * Mappa che contiene le funzioni factory per creare istanze IBlock predefinite.
+ */
+export const defaultBlockFactories: Record<string, (...args: any[]) => IBlock> = {
+    section: (): IBlock => ({
+        id: generateId(),
+        type: 'section',
+        data: {
+            title: 'Nuova Sezione',
+            size: 'default',
+            backgroundColor: '#ffffff',
+        },
+        children: [],
+        props: {
+            class: 'section section--default',
+        }
+    }),
+    heading: (): IBlock => ({
+        id: generateId(),
+        type: 'heading',
+        data: {
+            content: 'Nuova Intestazione',
+            level: 'h2', // h1, h2, h3
+            alignment: 'center', // left, center
+            marginUtility: 'mt-16',
+        },
+        children: null,
+    }),
+    paragraph: (): IBlock => ({
+        id: generateId(),
+        type: 'paragraph',
+        data: {
+            content: 'Questo è un nuovo paragrafo di testo. Clicca per modificare il contenuto.',
+        },
+        children: null,
+    }),
+    grid: (): IBlock => ({
+        id: generateId(),
+        type: 'grid',
+        data: {
+            columns: 3,
+            gap: 20, // gap in px
+        },
+        children: [
+            // Aggiungiamo 3 "Tile" di esempio come figli predefiniti della griglia
+            defaultBlockFactories.tile!('Tile 1'),
+            defaultBlockFactories.tile!('Tile 2'),
+            defaultBlockFactories.tile!('Tile 3'),
+        ],
+        props: {
+            class: 'grid grid--3',
+        }
+    }),
+    tile: (title = 'Nuova Scheda'): IBlock => ({
+        id: generateId(),
+        type: 'tile',
+        data: {
+            kicker: 'Categoria',
+            title: title,
+            content: 'Breve descrizione o testo promozionale per la scheda.',
+            ctaText: 'Leggi Tutto',
+            ctaUrl: '#',
+        },
+        children: null,
+    }),
+};
+
+// --- Definizione della Palette per l'UI (usata in BlockPalette.vue) ---
+
+export const componentDefinitions: IComponentDefinition[] = [
+    {
+        id: generateId(),
+        name: 'Sezione Contenitore',
+        type: 'section',
+        icon: '🟦',
+        description: 'Un contenitore per organizzare i blocchi, con opzioni di sfondo e spaziatura.',
+        isContainer: true,
+    },
+    {
+        id: generateId(),
+        name: 'Intestazione',
+        type: 'heading',
+        icon: 'H',
+        description: 'Titolo di vari livelli (H1, H2, H3).',
+        isContainer: false,
+    },
+    {
+        id: generateId(),
+        name: 'Paragrafo',
+        type: 'paragraph',
+        icon: 'P',
+        description: 'Testo di base per contenuti lunghi.',
+        isContainer: false,
+    },
+    {
+        id: generateId(),
+        name: 'Griglia (Container)',
+        type: 'grid',
+        icon: '▦',
+        description: 'Griglia 2 o 3 colonne, pensata per schede o colonne di testo.',
+        isContainer: true,
+    },
+    {
+        id: generateId(),
+        name: 'Scheda (Tile)',
+        type: 'tile',
+        icon: '⬜',
+        description: 'Una singola scheda di contenuto con titolo, testo e CTA.',
+        isContainer: false,
+    },
+];
